@@ -34,6 +34,7 @@ export async function SiteFooter() {
         <nav aria-label="Help links">
           <h2 className="text-sm font-semibold">Help</h2>
           <ul className="mt-3 space-y-2 text-sm text-neutral-700">
+            <li><Link href="/track-order" className="hover:underline">Track your order</Link></li>
             <li><Link href="/faq" className="hover:underline">FAQ</Link></li>
             <li><Link href="/shipping-returns" className="hover:underline">Shipping and returns</Link></li>
             <li><Link href="/contact" className="hover:underline">Contact</Link></li>
