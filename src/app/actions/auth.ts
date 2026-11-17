@@ -1,0 +1,76 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/safe-redirect";
+import { normalizePkPhone } from "@/lib/phone";
+
+export type AuthState = { ok: false; message: string; field?: string } | null;
+
+const email = z.string().trim().toLowerCase().email("Please enter a valid email address.").max(254);
+const password = z.string().min(8, "Use at least 8 characters.").max(72, "That password is too long.");
+
+function friendly(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login")) return "Email or password is wrong.";
+  if (m.includes("email not confirmed")) return "Please confirm your email first. Check your inbox for the link.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "An account with this email already exists. Try logging in.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Too many tries. Please wait a few minutes and try again.";
+  if (m.includes("weak") || m.includes("password")) return "Please choose a stronger password.";
+  return "Something went wrong. Please try again.";
+}
+
+export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const parsedEmail = email.safeParse(formData.get("email"));
+  if (!parsedEmail.success) return { ok: false, message: parsedEmail.error.issues[0].message, field: "email" };
+  const pass = String(formData.get("password") ?? "");
+  if (!pass) return { ok: false, message: "Please enter your password.", field: "password" };
+
+  const supabase = createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email: parsedEmail.data, password: pass });
+  if (error) return { ok: false, message: friendly(error.message) };
+
+  // Where to go: the page they came from, else the admin panel for admins, else their account.
+  const next = safeNext(formData.get("next"), "");
+  if (next) redirect(next);
+  const { data } = await supabase.auth.getUser();
+  const { data: profile } = data.user
+    ? await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle()
+    : { data: null };
+  redirect(profile?.role === "admin" ? "/admin" : "/account");
+}
+
+export async function signup(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  if (formData.get("website")) return { ok: false, message: "Something went wrong. Please try again." }; // bot trap
+
+  const name = String(formData.get("full_name") ?? "").trim();
+  if (name.length < 2 || name.length > 80) return { ok: false, message: "Please enter your name.", field: "full_name" };
+  const parsedEmail = email.safeParse(formData.get("email"));
+  if (!parsedEmail.success) return { ok: false, message: parsedEmail.error.issues[0].message, field: "email" };
+  const parsedPass = password.safeParse(formData.get("password"));
+  if (!parsedPass.success) return { ok: false, message: parsedPass.error.issues[0].message, field: "password" };
+  const rawPhone = String(formData.get("phone") ?? "").trim();
+  const phone = rawPhone ? normalizePkPhone(rawPhone) : null;
+  if (rawPhone && !phone) return { ok: false, message: "Please enter a Pakistani mobile number, like 0300 1234567.", field: "phone" };
+
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: parsedEmail.data,
+    password: parsedPass.data,
+    options: { data: { full_name: name, phone } },
+  });
+  if (error) return { ok: false, message: friendly(error.message) };
+
+  // With "Confirm email" turned on in Supabase there is no session yet.
+  if (!data.session) {
+    redirect("/login?notice=confirm");
+  }
+  redirect(safeNext(formData.get("next"), "/account"));
+}
+
+export async function logout() {
+  const supabase = createClient();
+  await supabase.auth.signOut();
+  redirect("/");
+}

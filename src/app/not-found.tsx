@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { SiteChrome } from "@/components/site-chrome";
 
 export default function NotFound() {
   return (
+    <SiteChrome>
     <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col items-center justify-center px-4 py-20 text-center">
       <p className="text-sm font-medium uppercase tracking-[0.2em] text-accent-ink">404</p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight">We couldn&apos;t find that page</h1>
@@ -10,5 +12,6 @@ export default function NotFound() {
         Back to shop
       </Link>
     </div>
+    </SiteChrome>
   );
 }

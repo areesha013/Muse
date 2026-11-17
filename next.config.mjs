@@ -1,3 +1,13 @@
+// Product photos come from your Supabase project. Allow whatever host NEXT_PUBLIC_SUPABASE_URL points to.
+const supabaseImage = (() => {
+  try {
+    const u = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    return [{ protocol: u.protocol.replace(":", ""), hostname: u.hostname, port: u.port }];
+  } catch {
+    return [];
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -6,7 +16,7 @@ const nextConfig = {
   },
   images: {
     // Lets product photos uploaded to Supabase Storage load through next/image.
-    remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
+    remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }, ...supabaseImage],
   },
 };
 

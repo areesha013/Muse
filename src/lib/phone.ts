@@ -15,3 +15,9 @@ export function normalizeOrderNumber(input: string): string | null {
   const m = s.match(/^(?:ORD)?(\d{3,9})$/);
   return m ? `ORD-${m[1]}` : null;
 }
+
+/** 03012345678 -> "923012345678" for wa.me links. Returns null if it isn't a normal PK mobile. */
+export function toWhatsAppNumber(phone: string): string | null {
+  const n = normalizePkPhone(phone);
+  return n ? `92${n.slice(1)}` : null;
+}

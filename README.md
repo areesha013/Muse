@@ -7,8 +7,8 @@ Next.js 14 + TypeScript + Tailwind + Supabase. Built in phases.
 | 1. Project setup, database, security, storage | Done |
 | 2. Home, shop, product pages, cart | Done |
 | 3. Checkout, payments, order tracking | Done |
-| 4. Admin dashboard | Next |
-| 5. Reviews, discount codes, custom orders | |
+| 4. Login + admin dashboard | Done |
+| 5. Reviews, discount codes, custom orders | Next |
 | 6. Testing, deploy, domain | |
 
 ## Phase 1 setup (about 15 minutes)
@@ -28,12 +28,14 @@ Open **SQL Editor** > **New query**. Paste and **Run**, in this order:
 4. `supabase/seed.sql` (sample data, optional)
 5. `supabase/migrations/0004_newsletter_and_reviewer_name.sql` (added in Phase 2)
 6. `supabase/migrations/0005_checkout.sql` (added in Phase 3)
+7. `supabase/migrations/0006_admin.sql` (added in Phase 4)
 
 Shortcut: `supabase/setup_all.sql` is files 1 to 3 combined.
 You should see "Success" each time. Do not run any file twice.
 
-**Already did Phase 1 and 2?** Run ONLY file 6 (0005). Nothing else.
-**Only did Phase 1?** Run files 5 and 6.
+**Already did through Phase 3?** Run ONLY file 7 (0006). Nothing else.
+**Only did Phase 1 and 2?** Run files 6 and 7.
+**Only did Phase 1?** Run files 5, 6 and 7.
 
 ### 3. Check it worked
 - **Table Editor** should list: profiles, categories, products, orders and more.
@@ -53,8 +55,8 @@ npm run dev
 ```
 Open http://localhost:3000.
 
-### 6. Make yourself the first admin (do this after Phase 4 adds login)
-1. Sign up on the site once.
+### 6. Make yourself the first admin
+1. Sign up on the site once (`/signup`).
 2. In Supabase SQL Editor run (use your email):
 ```sql
 update public.profiles
@@ -65,7 +67,7 @@ Only the SQL Editor can create the first admin. Nobody can promote themselves fr
 
 ## What to customize
 - Brand name, tagline, WhatsApp number: `src/config/site.ts`
-- Store info, shipping rates, JazzCash/Easypaisa/bank details: the `settings` table (admin panel in Phase 4)
+- Store info, shipping rates, JazzCash/Easypaisa/bank details: **Admin > Settings** (no code needed)
 - Logo and colors: Phase 2
 
 ## How security works
@@ -84,6 +86,7 @@ supabase/
   migrations/0003_storage.sql  image buckets
   migrations/0004_...sql       newsletter, reviewer names
   migrations/0005_checkout.sql order functions: price, stock, discount, shipping
+  migrations/0006_admin.sql    admin functions: order status, payment review, dashboard numbers
   seed.sql                     sample products, settings, 1 discount code
   setup_all.sql                files 1 to 3 combined
 src/config/site.ts             brand name, tagline, WhatsApp
@@ -139,3 +142,51 @@ src/middleware.ts              login session + protects /admin and /account
 - **"Something went wrong" on Place order**: you probably skipped `0005_checkout.sql`. Run it once.
 - **Receipt upload fails**: run `0003_storage.sql` (creates the `receipts` bucket) and check `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
 - **Order page shows 404**: the link must be the full `/order/<long code>` link.
+
+## Phase 4: what was added
+- **Login, sign up, My account** (`/login`, `/signup`, `/account`). Customers see their own orders.
+- **Admin panel** at `/admin` (only for admins): dashboard, orders, products, categories, settings.
+
+### First time: become admin
+1. Run `0006_admin.sql` in the Supabase SQL Editor (once).
+2. Supabase > Authentication > Providers > Email: for now turn **Confirm email OFF** (easier while testing). Turn it back ON before launch.
+3. Supabase > Authentication > URL Configuration: set **Site URL** to `http://localhost:3000`.
+4. Restart `npm run dev`, open `/signup` and create your account.
+5. Run the "first admin" SQL from step 6 above, with your email.
+6. Log out and in again. You will see an **Admin panel** button in My account.
+
+### Admin guide
+| Job | Where |
+|---|---|
+| Check customer payments (JazzCash, Easypaisa, bank) | Dashboard > "Payments to check", or Orders > "Check payment" |
+| Verify or reject a payment | Open the order. Rejecting needs a reason. The customer sees it and can send again. |
+| Move an order: packed, shipped, delivered | Open the order > Update this order. Add a note (courier, tracking). The customer sees it on Track order. |
+| Cancel an order | Open the order > Cancel. It asks twice. Items go back into stock. |
+| Add or edit a product, photos, options | Products |
+| Hide a product without deleting it | Products > open it > untick "Show in the shop" |
+| Change payment details, shipping, store info | Settings |
+
+### Good to know
+- Photos: pick any JPG, PNG or WebP. Big photos are shrunk in your browser before upload.
+- Changes show in the shop within a moment. No redeploy is needed.
+- Order flow is fixed: waiting for payment > confirmed > packed > shipped > delivered. Cancel is possible until shipped.
+- A cancelled order with a verified online payment shows **Refund needed**. Send the money back yourself, then tell the customer on WhatsApp.
+- Cash on delivery counts as paid when you mark it delivered.
+
+### Security layers (admin)
+1. Logged-out visitors are sent to login.
+2. Logged-in customers see "No admin access" and no data.
+3. Every admin action checks your role again on the server.
+4. The database itself refuses admin changes from anyone who is not an admin.
+
+### Known limits (planned)
+- Edit payment details in Settings before launch. The pages warn you while they are still placeholders.
+- No "forgot password" page yet.
+- Reviews, discount codes and custom requests: the dashboard shows counts. The screens come in Phase 5.
+- The shop list has no pages yet (fine for a small shop).
+
+### Troubleshooting (Phase 4)
+- **"permission denied for function admin_dashboard_stats"**: you are not admin yet, or `0006_admin.sql` was not run.
+- **Signup says "check your email"**: Confirm email is ON in Supabase. Confirm via the email, or turn it OFF while testing.
+- **Login goes in a circle**: Site URL in Supabase must match the address you open (`http://localhost:3000`).
+- **Photo upload fails**: run `0003_storage.sql` and check `SUPABASE_SERVICE_ROLE_KEY`.

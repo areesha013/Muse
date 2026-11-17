@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useCart } from "@/components/cart-context";
 
@@ -57,6 +57,9 @@ export function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-3">
           <SearchBox className="hidden w-56 md:block" />
+          <Link href="/account" aria-label="My account" className="rounded-full p-2 hover:bg-neutral-100">
+            <User size={22} aria-hidden />
+          </Link>
           <button
             onClick={open}
             aria-label={`Open cart, ${count} ${count === 1 ? "item" : "items"}`}
