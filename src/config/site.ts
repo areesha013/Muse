@@ -19,6 +19,7 @@ export const siteConfig = {
   nav: [
     { label: "Shop", href: "/shop" },
     { label: "Bundles", href: "/shop?category=bundles" },
+    { label: "Custom orders", href: "/custom-order" },
     { label: "About", href: "/about" },
     { label: "Track order", href: "/track-order" },
     { label: "Contact", href: "/contact" },

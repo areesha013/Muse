@@ -18,7 +18,7 @@ export const faqs: { q: string; a: string }[] = [
   },
   {
     q: "Can I order something custom?",
-    a: "Yes. Message us on WhatsApp with your idea, colors, size and deadline, and we will send you a quote.",
+    a: "Yes. Fill in the Custom orders form (or message us on WhatsApp) with your idea, colors, size and deadline, and we will send you a quote.",
   },
   {
     q: "How do I care for crochet items?",

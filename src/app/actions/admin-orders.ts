@@ -2,8 +2,23 @@
 
 import { z } from "zod";
 import { dbMessage, getAdminContext, NOT_ADMIN, type ActionResult } from "@/lib/admin";
+import { emailOrderUpdate } from "@/lib/order-emails";
+import { emailEnabled } from "@/lib/email";
+import { createClient } from "@/lib/supabase/server";
 
 const uuid = z.string().uuid();
+// Looks the order up (as the logged-in admin) so we can email the customer. Best effort only.
+async function mailCustomer(supabase: ReturnType<typeof createClient>, orderId: string, update: Parameters<typeof emailOrderUpdate>[1]) {
+  if (!emailEnabled()) return;
+  try {
+    const { data } = await supabase.from("orders").select("order_number, customer_name, customer_email, access_token").eq("id", orderId).maybeSingle();
+    if (!data) return;
+    await emailOrderUpdate({ orderNumber: data.order_number as string, token: data.access_token as string, name: data.customer_name as string, email: (data.customer_email as string | null) ?? null }, update);
+  } catch (e) {
+    console.error("[email] order update:", e);
+  }
+}
+
 const statuses = z.enum(["confirmed", "packed", "shipped", "delivered", "cancelled"]);
 
 export async function setOrderStatus(orderId: string, status: string, note: string | null): Promise<ActionResult> {
@@ -21,6 +36,7 @@ export async function setOrderStatus(orderId: string, status: string, note: stri
   });
   if (error) return { ok: false, message: dbMessage(error) };
   const refund = (data as { refund_needed?: boolean } | null)?.refund_needed;
+  await mailCustomer(ctx.supabase, id.data, { kind: "status", status: st.data, note: cleanNote });
   return {
     ok: true,
     message: refund
@@ -61,6 +77,7 @@ export async function reviewPayment(orderId: string, action: string, note: strin
     p_note: note.trim().slice(0, 300) || null,
   });
   if (error) return { ok: false, message: dbMessage(error) };
+  await mailCustomer(ctx.supabase, id.data, act.data === "verify" ? { kind: "payment_verified" } : { kind: "payment_rejected", note: note.trim().slice(0, 300) || null });
   return {
     ok: true,
     message: act.data === "verify" ? "Payment verified. The order is now confirmed." : "Payment rejected. The customer can send new proof.",

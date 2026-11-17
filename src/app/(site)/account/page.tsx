@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/actions/auth";
 import { PAYMENT_METHOD_LABEL, STATUS_LABEL, type OrderStatus, type PaymentMethod } from "@/lib/orders";
 import { formatPKR } from "@/lib/utils";
+import { CUSTOM_STATUS_LABEL, type CustomStatus } from "@/lib/custom-order";
 
 export const metadata: Metadata = { title: "My account", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -30,6 +31,13 @@ export default async function AccountPage() {
     .order("created_at", { ascending: false })
     .limit(30);
   const orders = (data ?? []) as Row[];
+
+  const { data: reqs } = await createClient()
+    .from("custom_requests")
+    .select("id, product_type, status, quote_amount, admin_reply, created_at")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const requests = (reqs ?? []) as { id: string; product_type: string; status: CustomStatus; quote_amount: number | null; admin_reply: string | null; created_at: string }[];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
@@ -71,6 +79,31 @@ export default async function AccountPage() {
                   <span className="block text-sm text-neutral-600">{STATUS_LABEL[o.status]}</span>
                 </span>
               </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="mt-12 text-lg font-semibold">Your custom requests</h2>
+      {requests.length === 0 ? (
+        <p className="mt-3 text-neutral-600">
+          None yet. Have an idea? <Link href="/custom-order" className="underline">Send a custom request</Link>.
+        </p>
+      ) : (
+        <ul className="mt-4 divide-y divide-neutral-200 rounded-2xl border border-neutral-200">
+          {requests.map((r) => (
+            <li key={r.id} className="px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  <span className="block font-medium">{r.product_type}</span>
+                  <span className="block text-sm text-neutral-600">{new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+                </span>
+                <span className="text-right">
+                  {r.quote_amount !== null && <span className="block font-medium">{formatPKR(Number(r.quote_amount))}</span>}
+                  <span className="block text-sm text-neutral-600">{CUSTOM_STATUS_LABEL[r.status]}</span>
+                </span>
+              </div>
+              {r.admin_reply && <p className="mt-3 whitespace-pre-line rounded-xl bg-cream px-4 py-3 text-sm text-neutral-800"><span className="font-medium">From us: </span>{r.admin_reply}</p>}
             </li>
           ))}
         </ul>

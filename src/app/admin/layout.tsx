@@ -5,6 +5,7 @@ import { siteConfig } from "@/config/site";
 import { requireAdmin } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { logout } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: { default: "Admin", template: `%s | Admin | ${siteConfig.name}` },
@@ -30,6 +31,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
+  // Small numbers on the menu: what is waiting for you. Never blocks the page.
+  const badges: Record<string, number> = {};
+  try {
+    const { data } = await createClient().rpc("admin_dashboard_stats");
+    const st = data as { payments_to_review?: number; reviews_pending?: number; custom_requests_new?: number } | null;
+    if (st) {
+      badges["/admin/orders"] = Number(st.payments_to_review ?? 0);
+      badges["/admin/reviews"] = Number(st.reviews_pending ?? 0);
+      badges["/admin/custom"] = Number(st.custom_requests_new ?? 0);
+    }
+  } catch {
+    // no numbers is fine
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-neutral-200">
@@ -48,7 +63,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </header>
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10">
         <aside className="min-w-0">
-          <AdminNav />
+          <AdminNav badges={badges} />
         </aside>
         <main id="main" className="min-w-0 pb-16">{children}</main>
       </div>

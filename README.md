@@ -8,8 +8,8 @@ Next.js 14 + TypeScript + Tailwind + Supabase. Built in phases.
 | 2. Home, shop, product pages, cart | Done |
 | 3. Checkout, payments, order tracking | Done |
 | 4. Login + admin dashboard | Done |
-| 5. Reviews, discount codes, custom orders | Next |
-| 6. Testing, deploy, domain | |
+| 5. Reviews, discount codes, custom orders | Done |
+| 6. Testing, deploy, domain | Next |
 
 ## Phase 1 setup (about 15 minutes)
 
@@ -29,13 +29,15 @@ Open **SQL Editor** > **New query**. Paste and **Run**, in this order:
 5. `supabase/migrations/0004_newsletter_and_reviewer_name.sql` (added in Phase 2)
 6. `supabase/migrations/0005_checkout.sql` (added in Phase 3)
 7. `supabase/migrations/0006_admin.sql` (added in Phase 4)
+8. `supabase/migrations/0007_phase5.sql` (added in Phase 5)
 
 Shortcut: `supabase/setup_all.sql` is files 1 to 3 combined.
 You should see "Success" each time. Do not run any file twice.
 
-**Already did through Phase 3?** Run ONLY file 7 (0006). Nothing else.
-**Only did Phase 1 and 2?** Run files 6 and 7.
-**Only did Phase 1?** Run files 5, 6 and 7.
+**Already did through Phase 4?** Run ONLY file 8 (0007). Nothing else.
+**Only did through Phase 3?** Run files 7 and 8.
+**Only did Phase 1 and 2?** Run files 6, 7 and 8.
+**Only did Phase 1?** Run files 5, 6, 7 and 8.
 
 ### 3. Check it worked
 - **Table Editor** should list: profiles, categories, products, orders and more.
@@ -87,6 +89,7 @@ supabase/
   migrations/0004_...sql       newsletter, reviewer names
   migrations/0005_checkout.sql order functions: price, stock, discount, shipping
   migrations/0006_admin.sql    admin functions: order status, payment review, dashboard numbers
+  migrations/0007_phase5.sql   review/custom-request limits, photo rules, discount code format
   seed.sql                     sample products, settings, 1 discount code
   setup_all.sql                files 1 to 3 combined
 src/config/site.ts             brand name, tagline, WhatsApp
@@ -182,7 +185,7 @@ src/middleware.ts              login session + protects /admin and /account
 ### Known limits (planned)
 - Edit payment details in Settings before launch. The pages warn you while they are still placeholders.
 - No "forgot password" page yet.
-- Reviews, discount codes and custom requests: the dashboard shows counts. The screens come in Phase 5.
+- Reviews, discount codes and custom requests: screens added in Phase 5.
 - The shop list has no pages yet (fine for a small shop).
 
 ### Troubleshooting (Phase 4)
@@ -190,3 +193,52 @@ src/middleware.ts              login session + protects /admin and /account
 - **Signup says "check your email"**: Confirm email is ON in Supabase. Confirm via the email, or turn it OFF while testing.
 - **Login goes in a circle**: Site URL in Supabase must match the address you open (`http://localhost:3000`).
 - **Photo upload fails**: run `0003_storage.sql` and check `SUPABASE_SERVICE_ROLE_KEY`.
+
+## Phase 5: what was added
+
+### First time
+1. Run `0007_phase5.sql` in the Supabase SQL Editor (once).
+2. Restart `npm run dev`.
+
+### Reviews
+- Any logged-in customer can write a review on a product page (stars, title, text, up to 3 photos).
+- "Verified purchase" shows automatically if they have a delivered order for it.
+- Reviews stay hidden until you approve them: **Admin > Reviews** (tabs: Waiting, Published, Hidden, All).
+- Customers can remove their own review.
+
+### Discount codes
+**Admin > Discounts**: create a code (letters, numbers, `-`, `_`), percent or fixed Rs, minimum order, max uses, expiry date, on/off.
+
+### Custom orders
+- Customers use **/custom-order** (type, description, up to 3 reference photos, phone).
+- You see them in **Admin > Custom orders**. Set status, add a quote and a reply.
+- Reply by WhatsApp (button) or email (tick the box, if email is set up).
+- Customers see status, quote and your reply in **My account**.
+- Spam protection: hidden trap field, max 3 requests per phone per day, max 40 per hour overall. Cloudflare Turnstile comes in Phase 6.
+- Reference photos are private. Only you can see them.
+
+### Optional: email (Resend)
+Emails are OFF until you add a key. The site works fine without them.
+1. Make a free account at resend.com and create an API key.
+2. Add to `.env.local` (and later to Vercel):
+```
+RESEND_API_KEY=re_...
+OWNER_EMAIL=you@example.com
+EMAIL_FROM=MUSE <onboarding@resend.dev>
+```
+3. Restart the site.
+
+You get: new order, payment proof, new custom request, new review.
+Customers get: order placed, payment verified or rejected, status changes, custom-order replies.
+
+### Known limits (planned)
+- Resend's test sender only delivers to the email you signed up with. To email customers, verify your own domain in Resend (Phase 6).
+- No "forgot password" page yet.
+- The shop list has no pages yet.
+- Payment details are still placeholders until you edit them in Settings.
+
+### Troubleshooting (Phase 5)
+- **Review or custom photo upload fails**: run `0003_storage.sql` (buckets) and `0007_phase5.sql`.
+- **Review does not appear**: it needs your approval in Admin > Reviews.
+- **Discount code rejected**: check it is active, not expired, and the cart meets the minimum.
+- **No emails**: check `RESEND_API_KEY`, restart, and look at the terminal for `[email] failed`.

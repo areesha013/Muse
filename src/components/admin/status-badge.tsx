@@ -35,3 +35,18 @@ export function PaymentStatusBadge({ status, long }: { status: PaymentStatus; lo
     </span>
   );
 }
+
+import { CUSTOM_STATUS_LABEL, type CustomStatus } from "@/lib/custom-order";
+
+const CUSTOM_STYLE: Record<CustomStatus, string> = {
+  new: "bg-amber-100 text-amber-900",
+  quoted: "bg-sky-100 text-sky-900",
+  accepted: "bg-violet-100 text-violet-900",
+  in_progress: "bg-indigo-100 text-indigo-900",
+  completed: "bg-green-100 text-green-900",
+  declined: "bg-neutral-200 text-neutral-700",
+};
+
+export function CustomStatusBadge({ status }: { status: CustomStatus }) {
+  return <span className={cn("inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium", CUSTOM_STYLE[status])}>{CUSTOM_STATUS_LABEL[status]}</span>;
+}

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { normalizePkPhone } from "@/lib/phone";
 import { ERROR_FIELD, friendlyError, parseDbError, type PaymentMethod } from "@/lib/orders";
+import { emailOrderPlaced } from "@/lib/order-emails";
 
 const cartItem = z.object({
   productId: z.string().uuid(),
@@ -171,7 +172,18 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
         ...(field ? { fieldErrors: { [field]: friendlyError(code, detail) } } : {}),
       };
     }
-    return { ok: true, token: (data as { access_token: string }).access_token };
+    const created = data as { access_token: string; order_id: string; order_number: string; total: number | string };
+    await emailOrderPlaced({
+      orderId: created.order_id,
+      orderNumber: created.order_number,
+      total: Number(created.total),
+      token: created.access_token,
+      method: d.method as PaymentMethod,
+      name: d.name,
+      phone: d.phone,
+      email: d.email || null,
+    });
+    return { ok: true, token: created.access_token };
   } catch (e) {
     console.error("[order] failed:", e);
     return { ok: false, message: "Something went wrong. Please try again." };

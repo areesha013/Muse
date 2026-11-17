@@ -7,6 +7,7 @@ import { ProductGallery } from "@/components/product-gallery";
 import { ProductBuy } from "@/components/product-buy";
 import { ProductCard } from "@/components/product-card";
 import { ReviewsList } from "@/components/reviews-list";
+import { ReviewSection } from "@/components/review-section";
 import { StarRating } from "@/components/star-rating";
 
 export const revalidate = 60;
@@ -132,7 +133,9 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
-      <ReviewsList reviews={reviews} />
+      <ReviewsList reviews={reviews}>
+        <ReviewSection productId={product.id} slug={product.slug} />
+      </ReviewsList>
 
       {related.length > 0 && (
         <section aria-labelledby="related-heading" className="mt-16">

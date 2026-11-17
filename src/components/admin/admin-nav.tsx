@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, PackageOpen, Settings, ShoppingBag, Tags } from "lucide-react";
+import { LayoutDashboard, PackageOpen, Palette, Settings, ShoppingBag, Star, Tags, TicketPercent } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
@@ -10,13 +10,17 @@ const ITEMS = [
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/products", label: "Products", icon: PackageOpen },
   { href: "/admin/categories", label: "Categories", icon: Tags },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
+  { href: "/admin/discounts", label: "Discounts", icon: TicketPercent },
+  { href: "/admin/custom", label: "Custom orders", icon: Palette },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export function AdminNav() {
+// badges: how many things wait for you, by page address (shown as a small number)
+export function AdminNav({ badges = {} }: { badges?: Record<string, number> }) {
   const path = usePathname();
   return (
-    <nav aria-label="Admin" className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+    <nav aria-label="Admin" className="relative flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
       {ITEMS.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? path === href : path.startsWith(href);
         return (
@@ -31,6 +35,11 @@ export function AdminNav() {
           >
             <Icon size={16} aria-hidden />
             {label}
+            {badges[href] > 0 && (
+              <span className={cn("ml-0.5 min-w-5 rounded-full px-1.5 text-center text-xs font-semibold", active ? "bg-white text-neutral-900" : "bg-accent-ink text-white")}>
+                <span className="sr-only">, </span>{badges[href]}<span className="sr-only"> waiting</span>
+              </span>
+            )}
           </Link>
         );
       })}

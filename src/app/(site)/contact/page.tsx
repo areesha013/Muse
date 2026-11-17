@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { siteConfig } from "@/config/site";
@@ -18,7 +19,7 @@ export default async function ContactPage() {
 
   return (
     <PageShell title="Contact us">
-      <p>Questions about an order or a custom idea? The fastest way to reach us is WhatsApp.</p>
+      <p>Questions about an order? The fastest way to reach us is WhatsApp. Have a custom idea? <Link href="/custom-order" className="text-accent-ink underline">Send us a custom request</Link>.</p>
       <a
         href={`https://wa.me/${siteConfig.whatsappNumber}`}
         target="_blank"

@@ -11,6 +11,7 @@ import {
   sniffImageType,
   type OrderView,
 } from "@/lib/orders";
+import { emailPaymentProof } from "@/lib/order-emails";
 
 const hasServerKeys = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -123,6 +124,7 @@ export async function submitPayment(_previous: PaymentState, formData: FormData)
       if (code === "UNKNOWN") console.error("[payment]", error.message);
       return { ok: false, message: friendlyError(code, detail) };
     }
+    await emailPaymentProof({ orderId: order.order_id, orderNumber: order.order_number, method: order.payment_method, name: order.name ?? order.first_name });
 
     const oldPath = (data as { old_receipt_path: string | null } | null)?.old_receipt_path;
     if (oldPath) await db.storage.from("receipts").remove([oldPath]);

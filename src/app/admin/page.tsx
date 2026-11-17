@@ -114,8 +114,8 @@ export default async function AdminDashboard() {
           <section aria-labelledby="more-h" className="rounded-2xl border border-neutral-200 p-5">
             <h2 id="more-h" className="font-semibold">Also</h2>
             <dl className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between"><dt className="text-neutral-600">Reviews waiting for approval</dt><dd className="font-medium">{s.reviews_pending}</dd></div>
-              <div className="flex justify-between"><dt className="text-neutral-600">New custom order requests</dt><dd className="font-medium">{s.custom_requests_new}</dd></div>
+              <div className="flex justify-between"><dt><Link href="/admin/reviews" className="text-neutral-600 underline">Reviews waiting for approval</Link></dt><dd className="font-medium">{s.reviews_pending}</dd></div>
+              <div className="flex justify-between"><dt><Link href="/admin/custom?s=new" className="text-neutral-600 underline">New custom order requests</Link></dt><dd className="font-medium">{s.custom_requests_new}</dd></div>
               <div className="flex justify-between"><dt className="text-neutral-600">Newsletter subscribers</dt><dd className="font-medium">{s.subscribers}</dd></div>
             </dl>
           </section>

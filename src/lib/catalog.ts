@@ -37,6 +37,7 @@ export type Review = {
   body: string | null;
   author: string;
   verified: boolean;
+  photos: string[];
   createdAt: string;
 };
 
@@ -180,7 +181,7 @@ export async function getApprovedReviews(): Promise<Review[]> {
     if (!db) return [];
     const { data, error } = await db
       .from("reviews")
-      .select("id, product_id, rating, title, body, author_name, is_verified_purchase, created_at")
+      .select("id, product_id, rating, title, body, photos, author_name, is_verified_purchase, created_at")
       .eq("status", "approved")
       .order("created_at", { ascending: false });
     if (error) {
@@ -195,6 +196,7 @@ export async function getApprovedReviews(): Promise<Review[]> {
       body: r.body,
       author: r.author_name || "Customer",
       verified: r.is_verified_purchase,
+      photos: Array.isArray(r.photos) ? (r.photos as string[]).filter((u) => /^https?:\/\//.test(u)).slice(0, 3) : [],
       createdAt: r.created_at,
     }));
   } catch (e) {

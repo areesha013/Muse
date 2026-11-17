@@ -4,31 +4,9 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteProductImage, makeMainImage, uploadProductImage } from "@/app/actions/admin-products";
 import { Message } from "@/components/admin/ui";
+import { shrinkImage } from "@/lib/shrink-image";
 
 export type Img = { id: string; url: string; alt: string | null };
-
-const MAX_SIDE = 1600;
-
-// Phone photos are often 4-10 MB. Shrink them in the browser before uploading (WebP keeps transparency).
-async function prepare(file: File): Promise<File> {
-  try {
-    const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
-    const okType = /^image\/(jpeg|png|webp)$/.test(file.type);
-    if (scale === 1 && file.size <= 1_500_000 && okType) return file;
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bmp.width * scale);
-    canvas.height = Math.round(bmp.height * scale);
-    canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/webp", 0.86));
-    if (blob && blob.type === "image/webp" && (blob.size < file.size || !okType)) {
-      return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".webp", { type: "image/webp" });
-    }
-    return file;
-  } catch {
-    return file; // the server will say if it is not a usable photo
-  }
-}
 
 export function ImageManager({ productId, images }: { productId: string; images: Img[] }) {
   const router = useRouter();
@@ -47,7 +25,7 @@ export function ImageManager({ productId, images }: { productId: string; images:
     const list = Array.from(files);
     for (let i = 0; i < list.length; i++) {
       setBusy(`Uploading ${i + 1} of ${list.length}...`);
-      const file = await prepare(list[i]);
+      const file = await shrinkImage(list[i]);
       const fd = new FormData();
       fd.set("product_id", productId);
       fd.set("file", file);
