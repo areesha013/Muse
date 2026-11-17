@@ -9,7 +9,7 @@ Next.js 14 + TypeScript + Tailwind + Supabase. Built in phases.
 | 3. Checkout, payments, order tracking | Done |
 | 4. Login + admin dashboard | Done |
 | 5. Reviews, discount codes, custom orders | Done |
-| 6. Testing, deploy, domain | Next |
+| 6. Spam protection, password reset, launch checklist, deploy guide | Done |
 
 ## Phase 1 setup (about 15 minutes)
 
@@ -81,6 +81,7 @@ Only the SQL Editor can create the first admin. Nobody can promote themselves fr
 - Do not put secrets in the `settings` table. Everything in it is public.
 
 ## Files
+See also `DEPLOY.md` (how to put the shop online).
 ```
 supabase/
   migrations/0001_schema.sql   tables, triggers
@@ -137,9 +138,9 @@ src/middleware.ts              login session + protects /admin and /account
 | Turn a payment method off | `settings` > `payments` > set `"enabled": false` |
 
 ### Known limits (planned)
-- If a customer loses the order link on a JazzCash/bank order, they cannot send proof from tracking. They can message you on WhatsApp. Email links come in Phase 5.
+- If a customer loses the order link on a JazzCash/bank order, they cannot send proof from tracking. They can message you on WhatsApp, or you can resend the link by email (Phase 5).
 - There are no photos yet. Add them in the admin panel (Phase 4).
-- Extra spam protection (Cloudflare Turnstile) is planned for Phase 6.
+- Extra spam protection (Cloudflare Turnstile) was added in Phase 6.
 
 ### Troubleshooting (Phase 3)
 - **"Something went wrong" on Place order**: you probably skipped `0005_checkout.sql`. Run it once.
@@ -184,7 +185,6 @@ src/middleware.ts              login session + protects /admin and /account
 
 ### Known limits (planned)
 - Edit payment details in Settings before launch. The pages warn you while they are still placeholders.
-- No "forgot password" page yet.
 - Reviews, discount codes and custom requests: screens added in Phase 5.
 - The shop list has no pages yet (fine for a small shop).
 
@@ -214,7 +214,7 @@ src/middleware.ts              login session + protects /admin and /account
 - You see them in **Admin > Custom orders**. Set status, add a quote and a reply.
 - Reply by WhatsApp (button) or email (tick the box, if email is set up).
 - Customers see status, quote and your reply in **My account**.
-- Spam protection: hidden trap field, max 3 requests per phone per day, max 40 per hour overall. Cloudflare Turnstile comes in Phase 6.
+- Spam protection: hidden trap field, max 3 requests per phone per day, max 40 per hour overall. Cloudflare Turnstile was added in Phase 6.
 - Reference photos are private. Only you can see them.
 
 ### Optional: email (Resend)
@@ -232,8 +232,7 @@ You get: new order, payment proof, new custom request, new review.
 Customers get: order placed, payment verified or rejected, status changes, custom-order replies.
 
 ### Known limits (planned)
-- Resend's test sender only delivers to the email you signed up with. To email customers, verify your own domain in Resend (Phase 6).
-- No "forgot password" page yet.
+- Resend's test sender only delivers to the email you signed up with. To email customers, verify your own domain in Resend (see DEPLOY.md).
 - The shop list has no pages yet.
 - Payment details are still placeholders until you edit them in Settings.
 
@@ -242,3 +241,47 @@ Customers get: order placed, payment verified or rejected, status changes, custo
 - **Review does not appear**: it needs your approval in Admin > Reviews.
 - **Discount code rejected**: check it is active, not expired, and the cart meets the minimum.
 - **No emails**: check `RESEND_API_KEY`, restart, and look at the terminal for `[email] failed`.
+
+## Phase 6: what was added
+
+No new SQL this time. Unzip over your project and restart `npm run dev`.
+
+### New
+| Feature | Where |
+|---|---|
+| **Forgot password** | Login page > "Forgot your password?" Email link > choose a new password |
+| **Turnstile spam check** (optional) | Signup, checkout, custom orders, forgot password. Needs 2 keys. Off without them. |
+| **"Before you open the shop" list** | Top of Admin > Dashboard. Disappears when everything is done. |
+| **Error page** | Friendly page with "Try again" if something breaks |
+| **Safer headers** | Blocks other sites from framing yours, and a few other browser protections |
+| **Deploy guide** | `DEPLOY.md` (GitHub, Vercel, domain, emails, Turnstile, live test) |
+
+### Turnstile (optional)
+Add to `.env.local` (and to Vercel):
+```
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
+TURNSTILE_SECRET_KEY=...
+```
+Restart. Both keys are needed. Full steps: `DEPLOY.md`, Part 7.
+
+On your own computer, add `localhost` to the widget's hostnames in Cloudflare, or leave Turnstile off while developing.
+
+### Before forgot-password works for real
+In Supabase > Authentication > URL Configuration, add `http://localhost:3000/auth/callback` to **Redirect URLs** (and your live address later). Without it, reset links do not come back to your site.
+
+### Good to know
+- The reset link must be opened in the same browser where it was requested.
+- Signup email confirmation now logs the person in when they click the link.
+- Supabase's own email sender is limited to a few emails per hour. Use Resend SMTP for a real shop (DEPLOY.md, Part 5).
+- If Cloudflare is unreachable, customers are let through (so you never lose orders to an outage).
+
+### Known limits
+- No change-email page. Customers can message you on WhatsApp.
+- Admin cannot delete customer accounts from the panel (use Supabase > Authentication).
+- The shop list has no pages yet (fine for a small catalog).
+
+### Troubleshooting (Phase 6)
+- **Reset link says "did not work"**: it expired, was used already, or was opened in another browser. Ask for a new one.
+- **Reset email never comes**: check spam, then Supabase > Authentication > Logs. Check the Redirect URL is added.
+- **"Security check did not pass"**: the widget's hostnames in Cloudflare must include the address you are on.
+- **Turnstile does nothing on my computer**: the keys must be set before `npm run dev` starts. Restart after editing `.env.local`.

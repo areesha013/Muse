@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { login, signup, type AuthState } from "@/app/actions/auth";
+import { Turnstile } from "@/components/turnstile";
 import { cn } from "@/lib/utils";
 
 const input = "mt-1 h-11 w-full rounded-lg border bg-white px-3 text-sm";
@@ -10,15 +11,19 @@ const input = "mt-1 h-11 w-full rounded-lg border bg-white px-3 text-sm";
 export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: string }) {
   const [state, setState] = useState<AuthState>(null);
   const [pending, startTransition] = useTransition();
+  const [captcha, setCaptcha] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
   const isSignup = mode === "signup";
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
+    data.set("captcha", captcha);
     startTransition(async () => {
       // On success the server redirects, so we only get a result back when something is wrong.
       const result = await (isSignup ? signup : login)(null, data);
       setState(result);
+      if (result) setCaptchaReset((n) => n + 1); // each security-check token works only once
     });
   }
 
@@ -64,7 +69,13 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
           {...bad("password")}
         />
         {isSignup && <p className="mt-1 text-xs text-neutral-600">At least 8 characters.</p>}
+        {!isSignup && (
+          <p className="mt-2 text-sm">
+            <Link href="/forgot-password" className="underline">Forgot your password?</Link>
+          </p>
+        )}
       </div>
+      {isSignup && <Turnstile onToken={setCaptcha} resetSignal={captchaReset} />}
       {isSignup && <input name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />}
       <button
         type="submit"

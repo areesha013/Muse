@@ -20,7 +20,7 @@ type Row = {
   access_token: string;
 };
 
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }: { searchParams: { notice?: string } }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/login?next=/account");
 
@@ -57,6 +57,10 @@ export default async function AccountPage() {
           </form>
         </div>
       </div>
+
+      {searchParams.notice === "password" && (
+        <p role="status" className="mt-6 rounded-xl bg-accent-soft px-4 py-3 text-sm">Your password has been changed.</p>
+      )}
 
       <h2 className="mt-12 text-lg font-semibold">Your orders</h2>
       {orders.length === 0 ? (

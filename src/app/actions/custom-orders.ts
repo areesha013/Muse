@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { verifyTurnstile } from "@/lib/turnstile";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
 import { normalizePkPhone } from "@/lib/phone";
@@ -59,6 +60,9 @@ export async function submitCustomRequest(formData: FormData): Promise<CustomRes
     if (d > max) return { ok: false, message: "Please pick a date within the next year.", field: "deadline" };
     deadline = d;
   }
+
+  const captcha = await verifyTurnstile(formData.get("captcha"));
+  if (!captcha.ok) return { ok: false, message: captcha.message };
 
   // Reference pictures (optional, up to 3)
   const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);

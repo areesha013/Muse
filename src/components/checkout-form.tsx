@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { placeOrder, quoteCart, type Quote, type QuoteLine } from "@/app/actions/checkout";
 import { useCart } from "@/components/cart-context";
+import { Turnstile } from "@/components/turnstile";
 import { CITIES } from "@/lib/cities";
 import type { PaymentMethod } from "@/lib/orders";
 import { cn, formatPKR } from "@/lib/utils";
@@ -42,6 +43,8 @@ export function CheckoutForm({ methods }: { methods: MethodOption[] }) {
   const [form, setForm] = useState({ name: "", phone: "", email: "", city: "", address: "", notes: "" });
   const [method, setMethod] = useState<PaymentMethod>(methods[0]?.id ?? "cod");
   const [honeypot, setHoneypot] = useState("");
+  const [captcha, setCaptcha] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const [codeInput, setCodeInput] = useState("");
   const [appliedCode, setAppliedCode] = useState("");
@@ -106,6 +109,7 @@ export function CheckoutForm({ methods }: { methods: MethodOption[] }) {
       items: cartPayload,
       code: discountApplied ? appliedCode : "",
       website: honeypot,
+      captcha,
     });
 
     if (result.ok) {
@@ -115,6 +119,7 @@ export function CheckoutForm({ methods }: { methods: MethodOption[] }) {
     }
 
     setFormError(result.message);
+    setCaptchaReset((n) => n + 1); // each security-check token works only once
     setRefreshKey((k) => k + 1); // stock or prices may have changed: re-check the cart
     setFieldErrors(result.fieldErrors ?? {});
     setSubmitting(false);
@@ -211,6 +216,7 @@ export function CheckoutForm({ methods }: { methods: MethodOption[] }) {
             </div>
           )}
         </fieldset>
+        <Turnstile onToken={setCaptcha} resetSignal={captchaReset} />
       </div>
 
       {/* ---------- Right: summary ---------- */}

@@ -4,6 +4,8 @@ import { formatPKR } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/orders";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { SalesChart, type DayPoint } from "@/components/admin/sales-chart";
+import { LaunchChecklist } from "@/components/admin/launch-checklist";
+import { getLaunchChecklist } from "@/lib/launch-check";
 
 type Stats = {
   orders_by_status: Partial<Record<OrderStatus, number>>;
@@ -44,11 +46,14 @@ export default async function AdminDashboard() {
     );
   }
   const s = data as Stats;
+  const checklist = await getLaunchChecklist(createClient());
   const toReview = Number(s.payments_to_review);
 
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+
+      <LaunchChecklist items={checklist} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card label="Payments to check" value={String(toReview)} href="/admin/orders?review=1" attention={toReview > 0} hint={toReview > 0 ? "Customers are waiting" : "All caught up"} />

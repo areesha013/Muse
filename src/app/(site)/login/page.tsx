@@ -20,6 +20,12 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
           Almost done. We emailed you a link. Click it to confirm your email, then log in here.
         </p>
       )}
+      {searchParams.notice === "link" && (
+        <p role="alert" className="mt-4 rounded-xl bg-cream px-4 py-3 text-sm">
+          That link did not work. It may have expired, or it was opened in a different browser. If you were confirming your email, try logging in.
+          If you were choosing a new password, <a href="/forgot-password" className="underline">ask for a new link</a>.
+        </p>
+      )}
       <div className="mt-8">
         <AuthForm mode="login" next={next || undefined} />
       </div>

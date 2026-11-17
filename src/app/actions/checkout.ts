@@ -5,6 +5,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { normalizePkPhone } from "@/lib/phone";
 import { ERROR_FIELD, friendlyError, parseDbError, type PaymentMethod } from "@/lib/orders";
 import { emailOrderPlaced } from "@/lib/order-emails";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 const cartItem = z.object({
   productId: z.string().uuid(),
@@ -115,6 +116,7 @@ const orderSchema = z.object({
   code: z.string().trim().max(40),
   items: cartItems,
   website: z.string().max(200).optional(), // spam trap
+  captcha: z.string().max(2048).optional(), // Cloudflare Turnstile token
 });
 
 export type PlaceOrderResult =
@@ -137,6 +139,9 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
   if (d.website) return { ok: false, message: "Something went wrong. Please try again." };
 
   if (!hasServerKeys()) return { ok: false, message: "Ordering isn't available right now. Please try again later." };
+
+  const captcha = await verifyTurnstile(d.captcha);
+  if (!captcha.ok) return { ok: false, message: captcha.message };
 
   // Link the order to the account if the customer is logged in (guests are fine too).
   let userId: string | null = null;

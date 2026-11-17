@@ -5,6 +5,7 @@ import { CheckCircle2, ImagePlus, MessageCircle, X } from "lucide-react";
 import { submitCustomRequest } from "@/app/actions/custom-orders";
 import { CUSTOM_TYPES, MAX_REFERENCE_IMAGES } from "@/lib/custom-order";
 import { shrinkImage } from "@/lib/shrink-image";
+import { Turnstile } from "@/components/turnstile";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,8 @@ export function CustomOrderForm({ defaults, loggedIn }: { defaults: { name: stri
   const [error, setError] = useState<{ message: string; field?: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  const [captcha, setCaptcha] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
   const picker = useRef<HTMLInputElement>(null);
   const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setV({ ...v, [k]: e.target.value });
   const err = (f: string) => (error?.field === f ? error.message : undefined);
@@ -55,13 +58,18 @@ export function CustomOrderForm({ defaults, loggedIn }: { defaults: { name: stri
     fd.set("budget", v.budget);
     fd.set("deadline", v.deadline);
     fd.set("website", v.website);
+    fd.set("captcha", captcha);
     for (const f of files) fd.append("images", await shrinkImage(f.file));
     try {
       const r = await submitCustomRequest(fd);
       if (r.ok) setDone(true);
-      else setError({ message: r.message, field: r.field });
+      else {
+        setError({ message: r.message, field: r.field });
+        setCaptchaReset((n) => n + 1); // each security-check token works only once
+      }
     } catch {
       setError({ message: "Something went wrong. Please try again, or message us on WhatsApp." });
+      setCaptchaReset((n) => n + 1);
     }
     setSending(false);
   }
@@ -146,6 +154,7 @@ export function CustomOrderForm({ defaults, loggedIn }: { defaults: { name: stri
         {err("images") && <p role="alert" className="mt-1 text-sm text-red-700">{err("images")}</p>}
       </div>
 
+      <Turnstile onToken={setCaptcha} resetSignal={captchaReset} />
       {error && !error.field && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error.message}</p>}
       <button type="submit" disabled={sending} className="h-12 w-full rounded-full bg-neutral-900 text-sm font-medium text-white hover:bg-neutral-700 disabled:bg-neutral-300 sm:w-auto sm:px-10">
         {sending ? "Sending..." : "Send request"}
